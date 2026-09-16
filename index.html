@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tracker Allenamenti</title>
+<style>
+  :root{
+    --bg: #15140f;
+    --surface: #201e18;
+    --surface-2: #2a2720;
+    --border: #3a362b;
+    --text: #f2efe6;
+    --text-dim: #b7b0a0;
+    --text-faint: #7d7768;
+    --brass: #c9a227;
+    --brass-dim: #9c7f22;
+    --sage: #6b8069;
+    --sage-dim: #4f6154;
+    --danger: #b9573f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:150px;
+  }
+  h1,h2,h3{
+    font-family:'Arial Narrow',-apple-system,'Segoe UI',sans-serif;
+    font-weight:700;
+    letter-spacing:0.01em;
+  }
+  .wrap{ max-width:560px; margin:0 auto; padding:16px 14px 40px; }
+  header{ margin-bottom:16px; }
+  header h1{ font-size:21px; margin:0; }
+  header .sub{ font-size:12px; color:var(--text-faint); }
+
+  .tabs{
+    display:flex; gap:6px; margin-bottom:12px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:4px; flex-wrap:wrap;
+  }
+  .tab{
+    flex:1; min-width:70px; text-align:center; padding:12px 4px; border-radius:7px;
+    font-family:'Arial Narrow',-apple-system,sans-serif; font-size:14px; font-weight:700;
+    color:var(--text-dim); cursor:pointer; border:none; background:transparent;
+  }
+  .tab.active{ background:var(--brass); color:#1a1608; }
+
+  .view-toggle{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:10px; }
+  .view-btn{
+    font-size:13px; color:var(--text-dim); background:none; border:none;
+    padding:6px 0; cursor:pointer; border-bottom:2px solid transparent;
+  }
+  .view-btn.active{ color:var(--text); border-bottom-color:var(--brass); }
+  .backup-row{ margin-top:-4px; margin-bottom:16px; }
+  .backup-row .view-btn{ font-size:11px; color:var(--text-faint); }
+
+  .status-line{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:11.5px; color:var(--text-faint); margin-bottom:14px; min-height:16px;
+  }
+  .status-line .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--sage); margin-right:6px; }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px; margin-bottom:12px;
+  }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px; }
+  .card-head h3{ font-size:16px; margin:0; }
+  .badge{
+    font-size:11px; color:var(--brass); border:1px solid var(--brass-dim);
+    border-radius:20px; padding:3px 9px; white-space:nowrap;
+  }
+  .variant-switch{
+    font-size:12px; color:var(--text-faint); background:none; border:1px solid var(--border);
+    border-radius:7px; padding:7px 10px; cursor:pointer; min-height:36px;
+  }
+
+  input[type=text]{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-size:16px; padding:12px 12px; margin-bottom:10px; min-height:44px;
+  }
+  input[type=text]::placeholder{ color:var(--text-faint); }
+  input[type=text]:focus{ outline:none; border-color:var(--brass-dim); }
+
+  select{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-size:16px; padding:12px 12px; margin-bottom:10px; min-height:44px;
+    appearance:none; -webkit-appearance:none;
+    background-image:linear-gradient(45deg, transparent 50%, var(--text-faint) 50%), linear-gradient(135deg, var(--text-faint) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+    background-size: 5px 5px, 5px 5px; background-repeat:no-repeat;
+  }
+  select:focus{ outline:none; border-color:var(--brass-dim); }
+
+  .no-lib-hint{
+    font-size:12.5px; color:var(--text-faint); background:var(--surface-2);
+    border:1px dashed var(--border); border-radius:8px; padding:12px; margin-bottom:10px;
+  }
+  .no-lib-hint .goto-lib{
+    display:block; margin-top:6px; background:none; border:none; color:var(--brass);
+    font-size:12.5px; text-decoration:underline; padding:2px 0; cursor:pointer;
+  }
+
+  .set-row{ display:grid; grid-template-columns: 26px 1fr 1fr 78px; gap:7px; align-items:center; margin-bottom:8px; }
+  .set-row:last-child{ margin-bottom:0; }
+  .set-idx{ font-size:13px; font-weight:700; color:var(--text-faint); text-align:center; }
+  .field{ display:flex; flex-direction:column; gap:3px; }
+  .field label{ font-size:10px; color:var(--text-faint); }
+  .field input[type=number]{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:7px;
+    color:var(--text); font-size:16px; padding:10px 8px; width:100%; min-height:42px;
+  }
+  .field input[type=number]:focus{ outline:none; border-color:var(--brass-dim); }
+  .prev{ font-size:11px; color:var(--sage); line-height:1.3; text-align:right; }
+  .prev.empty{ color:var(--text-faint); }
+
+  .group-empty-hint{ font-size:12px; color:var(--text-faint); margin-top:-4px; margin-bottom:8px; }
+  .set-rows-disabled{ opacity:0.35; pointer-events:none; }
+
+  .add-set{
+    font-size:13px; color:var(--text-dim); background:none; border:1px dashed var(--border);
+    border-radius:7px; padding:9px 10px; cursor:pointer; width:100%; margin-top:6px; min-height:40px;
+  }
+
+  .resume-banner{
+    background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--brass);
+    border-radius:8px; padding:10px 12px; font-size:12.5px; color:var(--text-dim); margin-bottom:14px;
+  }
+  .resume-banner button{
+    display:block; margin-top:6px; background:none; border:none; color:var(--text-faint);
+    text-decoration:underline; font-size:12px; padding:2px 0; cursor:pointer;
+  }
+
+  .save-bar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:linear-gradient(180deg, rgba(21,20,15,0) 0%, var(--bg) 35%);
+    padding:26px 14px 18px;
+  }
+  .save-bar-inner{ max-width:560px; margin:0 auto; }
+  .save-btn{
+    width:100%; background:var(--brass); color:#1a1608; border:none; border-radius:12px;
+    font-size:17px; font-weight:700; padding:16px; cursor:pointer; min-height:54px;
+  }
+  .save-btn:active{ background:var(--brass-dim); }
+  .finish-link{
+    display:block; width:100%; text-align:center; background:none; border:none;
+    color:var(--text-dim); font-size:13px; padding:10px 0 2px; cursor:pointer; text-decoration:underline;
+  }
+
+  .toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:var(--sage); color:#fff; font-size:13px; padding:10px 18px; border-radius:8px;
+    opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:50; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .history-session{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .history-session .date{ font-size:14px; font-weight:700; color:var(--brass); margin-bottom:8px; }
+  .history-ex{ font-size:13px; color:var(--text-dim); padding:6px 0; border-top:1px solid var(--border); }
+  .history-ex:first-of-type{ border-top:none; }
+  .history-ex .ex-name{ color:var(--text); font-weight:600; }
+  .history-ex .ex-sets{ color:var(--text-faint); font-size:12px; }
+  .empty-state{ text-align:center; color:var(--text-faint); font-size:13px; padding:40px 20px; }
+  .del-session{ float:right; font-size:11px; color:var(--text-faint); background:none; border:none; cursor:pointer; padding:6px; }
+  .del-session:active{ color:var(--danger); }
+
+  .lib-intro{ font-size:12.5px; color:var(--text-faint); margin-bottom:14px; line-height:1.4; }
+  .lib-add-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .lib-add-row input[type=text]{ margin-bottom:0; flex:1; }
+  .lib-add-btn{
+    background:var(--sage); color:#fff; border:none; border-radius:8px; font-size:13px;
+    font-weight:700; padding:0 16px; min-height:44px; cursor:pointer; white-space:nowrap;
+  }
+  .lib-add-btn:active{ background:var(--sage-dim); }
+  .lib-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .lib-chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--surface-2);
+    border:1px solid var(--border); border-radius:20px; padding:6px 6px 6px 12px;
+    font-size:13px; color:var(--text-dim);
+  }
+  .lib-chip button{ background:none; border:none; color:var(--text-faint); font-size:16px; line-height:1; padding:4px 6px; cursor:pointer; }
+  .lib-chip button:active{ color:var(--danger); }
+  .lib-empty{ font-size:12.5px; color:var(--text-faint); }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .chip-select{
+    font-size:12.5px; color:var(--text-dim); background:var(--surface-2); border:1px solid var(--border);
+    border-radius:20px; padding:7px 12px; cursor:pointer;
+  }
+  .chip-select.active{ background:var(--brass); color:#1a1608; border-color:var(--brass); font-weight:700; }
+  .stats-selectors{ margin-bottom:6px; }
+  .stats-subtitle{ font-size:11.5px; color:var(--text-faint); margin-bottom:8px; }
+
+  .stats-summary{ display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:6px; }
+  .stat-box{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center; }
+  .stat-label{ font-size:10px; color:var(--text-faint); margin-bottom:4px; }
+  .stat-value{ font-size:15px; font-weight:700; color:var(--text); }
+  .stat-value.pos{ color:var(--sage); }
+  .stat-value.neg{ color:var(--danger); }
+
+  .stats-table{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px 14px; margin-top:4px; }
+  .stats-row{ display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim); padding:9px 0; border-top:1px solid var(--border); }
+  .stats-row:first-child{ border-top:none; }
+
+  .muscle-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .muscle-name-input{ flex:1; margin-bottom:0; }
+  .row-icon-btn{
+    background:none; border:1px solid var(--border); border-radius:7px; color:var(--text-faint);
+    font-size:15px; width:40px; height:40px; min-height:40px; cursor:pointer; flex-shrink:0;
+  }
+  .row-icon-btn:active{ color:var(--danger); border-color:var(--danger); }
+  .row-icon-btn:disabled{ opacity:0.25; }
+
+  .schema-day-card .card-head{ align-items:flex-start; }
+  .day-label-input{
+    flex:1; font-size:17px; font-weight:700; background:transparent; border:none;
+    border-bottom:1px solid var(--border); border-radius:0; padding:6px 2px; margin-bottom:0; color:var(--text);
+  }
+  .day-label-input:focus{ outline:none; border-bottom-color:var(--brass-dim); }
+  .day-order-btns{ display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  .day-order-btns button{
+    background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-faint);
+    width:32px; height:32px; font-size:14px; cursor:pointer;
+  }
+  .day-order-btns button:disabled{ opacity:0.25; }
+  .day-remove-btn{
+    border:none; color:var(--danger); width:auto; font-size:11px; text-decoration:underline;
+    background:none; padding:4px 6px; cursor:pointer;
+  }
+
+  .schema-checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--text-dim); margin:10px 0; cursor:pointer; }
+  .schema-checkbox-row input[type=checkbox]{ width:18px; height:18px; }
+
+  .primo-variant-row{ display:flex; flex-direction:column; gap:10px; margin-bottom:6px; }
+  .primo-variant-col{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px; }
+  .mini-label{ font-size:11px; color:var(--text-faint); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em; }
+  .mini-inline{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim); margin-top:6px; flex-wrap:wrap; }
+  .mini-inline input[type=number]{
+    width:56px; background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-size:14px; padding:6px; text-align:center;
+  }
+  .primo-variant-col input[type=text]{ margin-bottom:0; font-size:14px; padding:9px 10px; min-height:38px; }
+
+  .group-slot-row{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:8px;
+  }
+  .slot-muscle-select{ flex:1; min-width:140px; margin-bottom:0; }
+  .slot-sets-label{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); white-space:nowrap; }
+  .slot-sets-input{
+    width:44px; background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-size:14px; padding:6px; text-align:center;
+  }
+  .slot-superset-label{ display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text-dim); white-space:nowrap; }
+  .slot-superset-label input{ width:16px; height:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Allenamenti</h1>
+    <div class="sub">tracker progressioni</div>
+  </header>
+
+  <div class="tabs" id="dayTabs"></div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="btnSessione">Sessione</button>
+    <button class="view-btn" id="btnStorico">Storico</button>
+    <button class="view-btn" id="btnLibreria">Esercizi</button>
+    <button class="view-btn" id="btnStats">Statistiche</button>
+    <button class="view-btn" id="btnSchema">Schema</button>
+  </div>
+  <div class="view-toggle backup-row">
+    <button class="view-btn" id="btnExport">Esporta backup</button>
+    <button class="view-btn" id="btnImport">Importa backup</button>
+  </div>
+
+  <div id="resumeBanner"></div>
+  <div class="status-line" id="statusLine"></div>
+
+  <div id="sessionView"></div>
+  <div id="historyView" style="display:none;"></div>
+  <div id="libraryView" style="display:none;"></div>
+  <div id="statsView" style="display:none;"></div>
+  <div id="schemaView" style="display:none;"></div>
+</div>
+
+<div class="save-bar" id="saveBar">
+  <div class="save-bar-inner">
+    <button class="save-btn" id="updateBtn">Aggiorna progressi</button>
+    <button class="finish-link" id="finishBtn">Termina e salva nello storico</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Salvato</div>
+<input type="file" id="importFileInput" accept="application/json" style="display:none;">
+
+<script>
+/* ---------- costanti di base ---------- */
+const LS_PREFIX = 'palestra-tracker:';
+const DEFAULT_GROUP_SETS = 3;
+const AUTOSAVE_DELAY = 700;
+
+const STATS_RANGES = [
+  {label:'30gg', days:30},
+  {label:'3 mesi', days:90},
+  {label:'6 mesi', days:180},
+  {label:'1 anno', days:365},
+  {label:'Sempre', days:null}
+];
+const STATS_METRICS = {
+  max: { label:'Carico max', subtitle:'Carico massimo per allenamento', calc: maxWeight, valid: v => v !== null },
+  volume: { label:'Volume totale', subtitle:'Volume totale per allenamento (carico × ripetizioni, tutte le serie)', calc: totalVolume, valid: v => v > 0 }
+};
+
+/* struttura di default, identica allo schema originale (per continuità con dati già salvati) */
+const DEFAULT_SCHEMA = {
+  muscleGroups: [
+    {key:'tricipiti', label:'Tricipiti'},
+    {key:'delt_lat', label:'Deltoidi laterali'},
+    {key:'delt_post', label:'Deltoidi posteriori'},
+    {key:'petto', label:'Petto'},
+    {key:'bicipiti', label:'Bicipiti'},
+    {key:'schiena', label:'Schiena'},
+    {key:'core', label:'Core'}
+  ],
+  days: [
+    {
+      id:'1', label:'Giorno 1', usaPrimo:true,
+      primo:{
+        variantA:{key:'zavorra', label:'Trazioni zavorrate', sets:4, targetReps:5},
+        variantB:{key:'normali', label:'Trazioni', sets:4, targetReps:6}
+      },
+      gruppi:[
+        {key:'tricipiti', muscle:'tricipiti', superset:false, sets:3},
+        {key:'delt_lat', muscle:'delt_lat', superset:false, sets:3},
+        {key:'delt_post', muscle:'delt_post', superset:false, sets:3},
+        {key:'petto_ss', muscle:'petto', superset:true, sets:3},
+        {key:'bicipiti_ss', muscle:'bicipiti', superset:true, sets:3}
+      ]
+    },
+    {
+      id:'2', label:'Giorno 2', usaPrimo:true,
+      primo:{
+        variantA:{key:'zavorra', label:'Dips zavorrate', sets:4, targetReps:5},
+        variantB:{key:'normali', label:'Dips', sets:4, targetReps:12}
+      },
+      gruppi:[
+        {key:'schiena', muscle:'schiena', superset:false, sets:3},
+        {key:'delt_lat', muscle:'delt_lat', superset:false, sets:3},
+        {key:'bicipiti', muscle:'bicipiti', superset:false, sets:3},
+        {key:'petto_ss', muscle:'petto', superset:true, sets:3},
+        {key:'core_ss', muscle:'core', superset:true, sets:3}
+      ]
+    },
+    {
+      id:'3', label:'Giorno 3', usaPrimo:true,
+      primo:{
+        variantA:{key:'db_press', label:'Handstand + DB press', sets:2, targetReps:8},
+        variantB:{key:'hspu', label:'Handstand push-up', sets:3, targetReps:6}
+      },
+      gruppi:[
+        {key:'schiena', muscle:'schiena', superset:false, sets:3},
+        {key:'petto', muscle:'petto', superset:false, sets:3},
+        {key:'tricipiti', muscle:'tricipiti', superset:false, sets:3},
+        {key:'core_ss', muscle:'core', superset:true, sets:3},
+        {key:'bicipiti_ss', muscle:'bicipiti', superset:true, sets:3}
+      ]
+    }
+  ]
+};
+
+/* ---------- stato globale ---------- */
+let historyCache = {};
+let formState = null;
+let lastSavedAt = null;
+let resumedDraft = false;
+let autosaveTimer = null;
+let storageAvailable = true;
+let lastErrorMsg = '';
+let currentView = 'session';
+let statsMuscle = null;
+let statsExercise = null;
+let statsRangeDays = null;
+let statsMetric = 'max';
+
+/* ---------- storage locale ---------- */
+function checkStorageAvailable(){
+  try{
+    const testKey = '__lspt_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    storageAvailable = true;
+  }catch(e){ storageAvailable = false; }
+}
+function lsGet(key){
+  try{ return localStorage.getItem(LS_PREFIX + key); }
+  catch(e){ lastErrorMsg = (e && e.message) ? e.message : String(e); return null; }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(LS_PREFIX + key, value); lastErrorMsg=''; return true; }
+  catch(e){ lastErrorMsg = (e && e.message) ? e.message : String(e); return false; }
+}
+function lsDelete(key){
+  try{ localStorage.removeItem(LS_PREFIX + key); }catch(e){}
+}
+function uniqueSuffix(){
+  return Date.now().toString(36) + Math.floor(Math.random()*46656).toString(36);
+}
+function slugify(name, existingKeys){
+  let base = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'gruppo';
+  let key = base, i = 2;
+  while(existingKeys.includes(key)){ key = base + '_' + i; i++; }
+  return key;
+}
+
+/* ---------- schema (giornate / gruppi muscolari) ---------- */
+function loadSchema(){
+  const raw = lsGet('schema-config');
+  if(raw){
+    try{ return JSON.parse(raw); }catch(e){}
+  }
+  const def = JSON.parse(JSON.stringify(DEFAULT_SCHEMA));
+  lsSet('schema-config', JSON.stringify(def));
+  return def;
+}
+function saveSchema(schema){ return lsSet('schema-config', JSON.stringify(schema)); }
+function buildRuntimeDays(schema){
+  const obj = {};
+  schema.days.forEach(d => {
+    obj[d.id] = {
+      label: d.label,
+      primo: d.usaPrimo ? { variants: [
+        {key:d.primo.variantA.key, label:d.primo.variantA.label, sets:d.primo.variantA.sets, targetReps:d.primo.variantA.targetReps},
+        {key:d.primo.variantB.key, label:d.primo.variantB.label, sets:d.primo.variantB.sets, targetReps:d.primo.variantB.targetReps}
+      ]} : null,
+      gruppi: d.gruppi.map(g => {
+        const m = schema.muscleGroups.find(x => x.key === g.muscle);
+        const base = m ? m.label : '(gruppo rimosso)';
+        return { key:g.key, muscle:g.muscle, label: g.superset ? base + ' — superset' : base, sets: g.sets || DEFAULT_GROUP_SETS };
+      })
+    };
+  });
+  return obj;
+}
+
+let SCHEMA = loadSchema();
+let DAYS = buildRuntimeDays(SCHEMA);
+let MUSCLE_GROUPS = SCHEMA.muscleGroups;
+let currentDay = SCHEMA.days.length ? SCHEMA.days[0].id : null;
+statsMuscle = MUSCLE_GROUPS.length ? MUSCLE_GROUPS[0].key : null;
+
+function schemaChanged(){
+  saveSchema(SCHEMA);
+  DAYS = buildRuntimeDays(SCHEMA);
+  MUSCLE_GROUPS = SCHEMA.muscleGroups;
+  renderSchemaView();
+}
+
+/* mutatori schema */
+function renameMuscle(key, newLabel){
+  const clean = newLabel.trim();
+  const m = SCHEMA.muscleGroups.find(x => x.key === key);
+  if(!m) return;
+  if(clean) m.label = clean;
+  schemaChanged();
+}
+function addMuscle(name){
+  const clean = (name || '').trim();
+  if(!clean) return;
+  const existing = SCHEMA.muscleGroups.map(m => m.key);
+  const key = slugify(clean, existing);
+  SCHEMA.muscleGroups.push({key, label:clean});
+  const input = document.getElementById('newMuscleInput');
+  if(input) input.value = '';
+  schemaChanged();
+}
+function removeMuscle(key){
+  const usedIn = SCHEMA.days.filter(d => d.gruppi.some(g => g.muscle === key)).map(d => d.label);
+  const msg = usedIn.length
+    ? `Questo gruppo è usato in: ${usedIn.join(', ')}. Rimuovendolo verrà tolto anche da lì (i dati già registrati restano salvati). Continuare?`
+    : 'Rimuovere questo gruppo muscolare?';
+  if(!window.confirm(msg)) return;
+  SCHEMA.days.forEach(d => { d.gruppi = d.gruppi.filter(g => g.muscle !== key); });
+  SCHEMA.muscleGroups = SCHEMA.muscleGroups.filter(m => m.key !== key);
+  const lib = loadLibrary();
+  delete lib[key];
+  saveLibrary(lib);
+  schemaChanged();
+}
+function renameDay(id, label){
+  const d = SCHEMA.days.find(x => x.id === id);
+  if(!d) return;
+  const clean = label.trim();
+  if(clean) d.label = clean;
+  schemaChanged();
+}
+function moveDay(id, dir){
+  const idx = SCHEMA.days.findIndex(d => d.id === id);
+  const swapIdx = idx + dir;
+  if(idx < 0 || swapIdx < 0 || swapIdx >= SCHEMA.days.length) return;
+  [SCHEMA.days[idx], SCHEMA.days[swapIdx]] = [SCHEMA.days[swapIdx], SCHEMA.days[idx]];
+  schemaChanged();
+}
+function removeDay(id){
+  if(SCHEMA.days.length <= 1){ showToast('Deve rimanere almeno una giornata'); return; }
+  const d = SCHEMA.days.find(x => x.id === id);
+  if(!window.confirm(`Rimuovere "${d.label}"? I dati già registrati restano salvati ma non saranno più visibili nel tracker.`)) return;
+  SCHEMA.days = SCHEMA.days.filter(x => x.id !== id);
+  if(currentDay === id){ currentDay = SCHEMA.days[0].id; }
+  schemaChanged();
+}
+function addDay(){
+  const n = SCHEMA.days.length + 1;
+  const id = 'd' + uniqueSuffix();
+  SCHEMA.days.push({
+    id, label:'Giorno ' + n, usaPrimo:false,
+    primo:{ variantA:{key:'a', label:'', sets:3, targetReps:8}, variantB:{key:'b', label:'', sets:3, targetReps:8} },
+    gruppi:[]
+  });
+  schemaChanged();
+}
+function togglePrimo(id, checked){
+  const d = SCHEMA.days.find(x => x.id === id);
+  if(!d) return;
+  d.usaPrimo = checked;
+  schemaChanged();
+}
+function updatePrimoField(dayId, variant, field, value){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  const v = variant === 'A' ? d.primo.variantA : d.primo.variantB;
+  if(field === 'label'){ v.label = value; }
+  else { v[field] = Math.max(1, parseInt(value) || 1); }
+  schemaChanged();
+}
+function addGroupSlot(dayId){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  if(!SCHEMA.muscleGroups.length){ showToast('Aggiungi prima un gruppo muscolare'); return; }
+  const muscle = SCHEMA.muscleGroups[0].key;
+  const key = muscle + '_' + uniqueSuffix();
+  d.gruppi.push({key, muscle, superset:false, sets:DEFAULT_GROUP_SETS});
+  schemaChanged();
+}
+function removeGroupSlot(dayId, slotKey){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  d.gruppi = d.gruppi.filter(g => g.key !== slotKey);
+  schemaChanged();
+}
+function moveGroupSlot(dayId, slotKey, dir){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  const idx = d.gruppi.findIndex(g => g.key === slotKey);
+  const swapIdx = idx + dir;
+  if(idx < 0 || swapIdx < 0 || swapIdx >= d.gruppi.length) return;
+  [d.gruppi[idx], d.gruppi[swapIdx]] = [d.gruppi[swapIdx], d.gruppi[idx]];
+  schemaChanged();
+}
+function updateSlotMuscle(dayId, slotKey, newMuscle){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  const g = d.gruppi.find(x => x.key === slotKey);
+  if(g) g.muscle = newMuscle;
+  schemaChanged();
+}
+function updateSlotSuperset(dayId, slotKey, checked){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  const g = d.gruppi.find(x => x.key === slotKey);
+  if(g) g.superset = checked;
+  schemaChanged();
+}
+function updateSlotSets(dayId, slotKey, value){
+  const d = SCHEMA.days.find(x => x.id === dayId);
+  if(!d) return;
+  const g = d.gruppi.find(x => x.key === slotKey);
+  if(g) g.sets = Math.max(1, parseInt(value) || 1);
+  schemaChanged();
+}
+
+/* ---------- libreria esercizi ---------- */
+function loadLibrary(){
+  const raw = lsGet('exercise-library');
+  return raw ? JSON.parse(raw) : {};
+}
+function saveLibrary(lib){ return lsSet('exercise-library', JSON.stringify(lib)); }
+function addExerciseToLibrary(muscleKey, name){
+  const clean = (name || '').trim();
+  if(!clean) return false;
+  const lib = loadLibrary();
+  lib[muscleKey] = lib[muscleKey] || [];
+  const exists = lib[muscleKey].some(n => n.toLowerCase() === clean.toLowerCase());
+  if(exists) return false;
+  lib[muscleKey].push(clean);
+  saveLibrary(lib);
+  return true;
+}
+function removeExerciseFromLibrary(muscleKey, name){
+  const lib = loadLibrary();
+  lib[muscleKey] = (lib[muscleKey] || []).filter(n => n !== name);
+  saveLibrary(lib);
+}
+
+/* ---------- storico e bozze ---------- */
+async function loadHistory(day){
+  if(historyCache[day]) return historyCache[day];
+  const raw = lsGet('history-day-' + day);
+  const arr = raw ? JSON.parse(raw) : [];
+  historyCache[day] = arr;
+  return arr;
+}
+async function saveHistory(day, arr){
+  historyCache[day] = arr;
+  return lsSet('history-day-' + day, JSON.stringify(arr));
+}
+async function loadDraft(day){
+  const raw = lsGet('draft-day-' + day);
+  return raw ? JSON.parse(raw) : null;
+}
+async function saveDraftNow(){
+  const payload = { state: formState, updatedAt: Date.now() };
+  const ok = lsSet('draft-day-' + currentDay, JSON.stringify(payload));
+  if(ok) lastSavedAt = payload.updatedAt;
+  renderStatusLine();
+  return ok;
+}
+async function deleteDraft(day){ lsDelete('draft-day-' + day); }
+function scheduleAutosave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(()=>{ saveDraftNow(); }, AUTOSAVE_DELAY);
+}
+
+/* ---------- backup ---------- */
+async function exportBackup(){
+  const data = {};
+  data['schema-config'] = SCHEMA;
+  data['exercise-library'] = loadLibrary();
+  for(const d of SCHEMA.days){ data['history-day-'+d.id] = await loadHistory(d.id); }
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup-allenamenti-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup scaricato');
+}
+function importBackup(){ document.getElementById('importFileInput').click(); }
+function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      for(const key of Object.keys(data)){ lsSet(key, JSON.stringify(data[key])); }
+      historyCache = {};
+      SCHEMA = loadSchema();
+      DAYS = buildRuntimeDays(SCHEMA);
+      MUSCLE_GROUPS = SCHEMA.muscleGroups;
+      currentDay = SCHEMA.days.length ? SCHEMA.days[0].id : null;
+      statsMuscle = MUSCLE_GROUPS.length ? MUSCLE_GROUPS[0].key : null;
+      statsExercise = null;
+      showToast('Backup importato');
+      await loadDayAndRender();
+    }catch(err){ showToast('File di backup non valido'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* ---------- utilità ---------- */
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function formatDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
+}
+function formatDateShort(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('it-IT', {day:'numeric', month:'short'});
+}
+function formatTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 1600);
+}
+function fmtNum(n){
+  if(n === null || n === undefined || isNaN(n)) return '–';
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+function maxWeight(sets){
+  const vals = (sets||[]).map(s => parseFloat(s.peso)).filter(n => !isNaN(n));
+  return vals.length ? Math.max(...vals) : null;
+}
+function totalVolume(sets){
+  return (sets||[]).reduce((sum, s) => {
+    const p = parseFloat(s.peso), r = parseFloat(s.reps);
+    return sum + (!isNaN(p) && !isNaN(r) ? p*r : 0);
+  }, 0);
+}
+
+/* ---------- logica primo esercizio / gruppi ---------- */
+function lastSession(history){ return history.length ? history[history.length-1] : null; }
+function nextPrimoVariant(day, history){
+  const variants = DAYS[day].primo.variants;
+  const last = lastSession(history);
+  if(!last || !last.primoVariant) return variants[0];
+  const idx = variants.findIndex(v => v.key === last.primoVariant);
+  return variants[(idx + 1) % variants.length] || variants[0];
+}
+function getPreviousPrimo(day, history, variantKey){
+  for(let i = history.length - 1; i >= 0; i--){
+    if(history[i].primoVariant === variantKey) return history[i].primoSets || [];
+  }
+  return [];
+}
+function getPreviousGroup(history, groupKey, exName){
+  const needle = (exName || '').trim().toLowerCase();
+  if(!needle) return null;
+  for(let i = history.length - 1; i >= 0; i--){
+    const g = history[i].gruppi && history[i].gruppi[groupKey];
+    if(g && g.esercizio && g.esercizio.trim().toLowerCase() === needle) return g.sets || [];
+  }
+  return null;
+}
+function getMuscleSlots(muscleKey){
+  const slots = [];
+  SCHEMA.days.forEach(d => { d.gruppi.forEach(g => { if(g.muscle === muscleKey) slots.push({day:d.id, key:g.key}); }); });
+  return slots;
+}
+async function getMuscleHistory(muscleKey){
+  const slots = getMuscleSlots(muscleKey);
+  const entries = [];
+  for(const slot of slots){
+    const history = await loadHistory(slot.day);
+    history.forEach(session => {
+      const g = session.gruppi && session.gruppi[slot.key];
+      if(g && g.esercizio) entries.push({ date: session.date, day: slot.day, esercizio: g.esercizio, sets: g.sets || [] });
+    });
+  }
+  entries.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return entries;
+}
+
+function newFormState(day, history){
+  const dayCfg = DAYS[day];
+  const gruppi = {};
+  dayCfg.gruppi.forEach(g => {
+    gruppi[g.key] = { esercizio:'', sets: Array.from({length:g.sets || DEFAULT_GROUP_SETS}, () => ({peso:'', reps:''})) };
+  });
+  let primoVariant = null, primoSets = [];
+  if(dayCfg.primo){
+    const variant = nextPrimoVariant(day, history);
+    const v = dayCfg.primo.variants.find(x => x.key === variant.key);
+    primoVariant = variant.key;
+    primoSets = Array.from({length:v.sets}, () => ({peso:'', reps:''}));
+  }
+  return { date: todayISO(), primoVariant, primoSets, gruppi };
+}
+
+/* ---------- rendering: tabs / status / resume ---------- */
+function renderTabs(){
+  const el = document.getElementById('dayTabs');
+  el.innerHTML = '';
+  SCHEMA.days.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (d.id === currentDay ? ' active' : '');
+    btn.textContent = d.label;
+    btn.onclick = () => { currentDay = d.id; loadDayAndRender(); };
+    el.appendChild(btn);
+  });
+}
+function renderStatusLine(){
+  const el = document.getElementById('statusLine');
+  if(currentView !== 'session'){ el.innerHTML = ''; return; }
+  if(!storageAvailable){
+    el.innerHTML = `<span style="color:var(--danger)">salvataggio non disponibile in questo browser</span>`;
+    return;
+  }
+  if(lastErrorMsg){
+    el.innerHTML = `<span style="color:var(--danger)">errore: ${lastErrorMsg}</span>`;
+    return;
+  }
+  if(lastSavedAt){
+    el.innerHTML = `<span><span class="dot"></span>salvato alle ${formatTime(lastSavedAt)}</span>`;
+  } else {
+    el.innerHTML = `<span>bozza non ancora salvata</span>`;
+  }
+}
+function renderResumeBanner(){
+  const el = document.getElementById('resumeBanner');
+  if(currentView !== 'session' || !resumedDraft){ el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="resume-banner">
+      Stai continuando l'allenamento iniziato oggi.
+      <button id="discardDraft">Ricomincia da zero</button>
+    </div>`;
+  document.getElementById('discardDraft').onclick = async () => {
+    await deleteDraft(currentDay);
+    resumedDraft = false;
+    lastSavedAt = null;
+    const history = await loadHistory(currentDay);
+    formState = newFormState(currentDay, history);
+    renderResumeBanner();
+    renderStatusLine();
+    renderSessionView();
+  };
+}
+
+/* ---------- rendering: sessione ---------- */
+function primoCardHTML(day, history){
+  const dayCfg = DAYS[day];
+  if(!dayCfg.primo) return '';
+  let v = dayCfg.primo.variants.find(x => x.key === formState.primoVariant);
+  if(!v){
+    v = dayCfg.primo.variants[0];
+    formState.primoVariant = v.key;
+    formState.primoSets = Array.from({length:v.sets}, () => ({peso:'', reps:''}));
+  }
+  const prevSets = getPreviousPrimo(day, history, formState.primoVariant);
+  let rows = '';
+  for(let i = 0; i < v.sets; i++){
+    const prev = prevSets[i];
+    const prevTxt = prev ? `prec.<br>${prev.peso ?? '–'}kg × ${prev.reps ?? '–'}` : 'prec. —';
+    rows += `
+      <div class="set-row">
+        <div class="set-idx">${i+1}</div>
+        <div class="field"><label>kg</label>
+          <input type="number" step="0.5" min="0" inputmode="decimal" data-primo-set="${i}" data-field="peso" value="${formState.primoSets[i]?.peso ?? ''}"></div>
+        <div class="field"><label>reps</label>
+          <input type="number" min="0" inputmode="numeric" data-primo-set="${i}" data-field="reps" value="${formState.primoSets[i]?.reps ?? ''}"></div>
+        <div class="prev ${prev ? '' : 'empty'}">${prevTxt}</div>
+      </div>`;
+  }
+  return `
+  <div class="card">
+    <div class="card-head">
+      <h3>${v.label || '(esercizio senza nome)'}</h3>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="badge">${v.targetReps} reps</span>
+        <button class="variant-switch" id="switchVariant">cambia</button>
+      </div>
+    </div>
+    ${rows}
+  </div>`;
+}
+function groupSetsRowsHTML(day, history, group, state){
+  const hasEx = state.esercizio.trim().length > 0;
+  let rows = '';
+  for(let i = 0; i < state.sets.length; i++){
+    const prevArr = hasEx ? getPreviousGroup(history, group.key, state.esercizio) : null;
+    const prev = prevArr ? prevArr[i] : null;
+    const prevTxt = hasEx ? (prev ? `prec.<br>${prev.peso ?? '–'}kg × ${prev.reps ?? '–'}` : 'prec. —') : '';
+    rows += `
+      <div class="set-row">
+        <div class="set-idx">${i+1}</div>
+        <div class="field"><label>kg</label>
+          <input type="number" step="0.5" min="0" inputmode="decimal" data-group="${group.key}" data-set="${i}" data-field="peso" value="${state.sets[i]?.peso ?? ''}"></div>
+        <div class="field"><label>reps</label>
+          <input type="number" min="0" inputmode="numeric" data-group="${group.key}" data-set="${i}" data-field="reps" value="${state.sets[i]?.reps ?? ''}"></div>
+        <div class="prev ${prev ? '' : 'empty'}" id="prev-${group.key}-${i}">${prevTxt}</div>
+      </div>`;
+  }
+  return rows;
+}
+function groupCardHTML(day, history, group){
+  if(!formState.gruppi[group.key]){
+    formState.gruppi[group.key] = { esercizio:'', sets: Array.from({length:group.sets || DEFAULT_GROUP_SETS}, () => ({peso:'', reps:''})) };
+  }
+  const state = formState.gruppi[group.key];
+  const hasEx = state.esercizio.trim().length > 0;
+  const lib = loadLibrary();
+  const options = lib[group.muscle] || [];
+  const selectHTML = options.length
+    ? `<select data-group-name="${group.key}">
+        <option value="">— seleziona esercizio —</option>
+        ${options.map(n => `<option value="${n}" ${n === state.esercizio ? 'selected' : ''}>${n}</option>`).join('')}
+      </select>`
+    : `<div class="no-lib-hint">Nessun esercizio in libreria per ${group.label.replace(' — superset','')}.
+        <button class="goto-lib" data-goto-lib="${group.muscle}">Aggiungilo ora</button>
+      </div>`;
+  return `
+  <div class="card" id="card-${group.key}">
+    <div class="card-head">
+      <h3>${group.label}</h3>
+      <span class="badge">8–12 reps</span>
+    </div>
+    ${selectHTML}
+    <div id="hint-${group.key}" class="group-empty-hint" style="${hasEx || !options.length ? 'display:none;' : ''}">seleziona l'esercizio per registrare le serie</div>
+    <div id="rows-${group.key}" class="${hasEx ? '' : 'set-rows-disabled'}">
+      <div id="setsWrap-${group.key}">${groupSetsRowsHTML(day, history, group, state)}</div>
+      <button class="add-set" data-add-set="${group.key}">+ aggiungi serie</button>
+    </div>
+  </div>`;
+}
+
+function attachPrimoListeners(){
+  const switchBtn = document.getElementById('switchVariant');
+  if(switchBtn){
+    switchBtn.onclick = () => {
+      const variants = DAYS[currentDay].primo.variants;
+      const idx = variants.findIndex(v => v.key === formState.primoVariant);
+      formState.primoVariant = variants[(idx+1) % variants.length].key;
+      const v = variants.find(v=>v.key===formState.primoVariant);
+      formState.primoSets = Array.from({length: v.sets}, () => ({peso:'', reps:''}));
+      scheduleAutosave();
+      renderSessionView();
+    };
+  }
+  document.querySelectorAll('[data-primo-set]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = Number(e.target.dataset.primoSet);
+      const field = e.target.dataset.field;
+      formState.primoSets[i] = formState.primoSets[i] || {};
+      formState.primoSets[i][field] = e.target.value;
+      scheduleAutosave();
+    });
+  });
+}
+function attachSetInputListeners(key){
+  document.getElementById('card-' + key).querySelectorAll('[data-group][data-set]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = Number(e.target.dataset.set);
+      const field = e.target.dataset.field;
+      formState.gruppi[key].sets[i] = formState.gruppi[key].sets[i] || {};
+      formState.gruppi[key].sets[i][field] = e.target.value;
+      scheduleAutosave();
+    });
+  });
+}
+function refreshGroupCard(day, history, group){
+  const key = group.key;
+  const state = formState.gruppi[key];
+  const hasEx = state.esercizio.trim().length > 0;
+  const hintEl = document.getElementById('hint-' + key);
+  if(hintEl) hintEl.style.display = hasEx ? 'none' : '';
+  const rowsEl = document.getElementById('rows-' + key);
+  if(rowsEl) rowsEl.classList.toggle('set-rows-disabled', !hasEx);
+  for(let i = 0; i < state.sets.length; i++){
+    const prevArr = hasEx ? getPreviousGroup(history, key, state.esercizio) : null;
+    const prev = prevArr ? prevArr[i] : null;
+    const el = document.getElementById(`prev-${key}-${i}`);
+    if(!el) continue;
+    el.classList.toggle('empty', !prev);
+    el.innerHTML = hasEx ? (prev ? `prec.<br>${prev.peso ?? '–'}kg × ${prev.reps ?? '–'}` : 'prec. —') : '';
+  }
+}
+function attachGroupListeners(day, history, group){
+  const key = group.key;
+  const nameSelect = document.querySelector(`[data-group-name="${key}"]`);
+  if(nameSelect){
+    nameSelect.addEventListener('change', e => {
+      formState.gruppi[key].esercizio = e.target.value;
+      formState.gruppi[key].sets = formState.gruppi[key].sets.map(() => ({peso:'', reps:''}));
+      document.getElementById('setsWrap-' + key).innerHTML = groupSetsRowsHTML(day, history, group, formState.gruppi[key]);
+      attachSetInputListeners(key);
+      refreshGroupCard(day, history, group);
+      scheduleAutosave();
+    });
+  }
+  const gotoLibBtn = document.querySelector(`[data-goto-lib="${group.muscle}"]`);
+  if(gotoLibBtn){
+    gotoLibBtn.addEventListener('click', () => {
+      currentView = 'library';
+      renderCurrentView().then(() => {
+        const target = document.getElementById('libcard-' + group.muscle);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+  }
+  document.getElementById('card-' + key).querySelectorAll('[data-group][data-set]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = Number(e.target.dataset.set);
+      const field = e.target.dataset.field;
+      formState.gruppi[key].sets[i] = formState.gruppi[key].sets[i] || {};
+      formState.gruppi[key].sets[i][field] = e.target.value;
+      scheduleAutosave();
+    });
+  });
+  document.getElementById('card-' + key).querySelector('[data-add-set]').addEventListener('click', () => {
+    formState.gruppi[key].sets.push({peso:'', reps:''});
+    document.getElementById('setsWrap-' + key).innerHTML = groupSetsRowsHTML(day, history, group, formState.gruppi[key]);
+    attachSetInputListeners(key);
+    scheduleAutosave();
+  });
+}
+async function renderSessionView(){
+  const history = await loadHistory(currentDay);
+  const dayCfg = DAYS[currentDay];
+  const container = document.getElementById('sessionView');
+  container.innerHTML = primoCardHTML(currentDay, history) +
+    dayCfg.gruppi.map(g => groupCardHTML(currentDay, history, g)).join('');
+  attachPrimoListeners();
+  dayCfg.gruppi.forEach(g => attachGroupListeners(currentDay, history, g));
+}
+
+/* ---------- rendering: storico ---------- */
+async function renderHistoryView(){
+  const history = await loadHistory(currentDay);
+  const container = document.getElementById('historyView');
+  if(!history.length){
+    container.innerHTML = '<div class="empty-state">Nessun allenamento registrato per questo giorno.</div>';
+    return;
+  }
+  const dayCfg = DAYS[currentDay];
+  const sorted = [...history].reverse();
+  container.innerHTML = sorted.map((s, idx) => {
+    const realIdx = history.length - 1 - idx;
+    let primoBlock = '';
+    if(s.primoVariant){
+      const variantCfg = dayCfg.primo && dayCfg.primo.variants.find(v => v.key === s.primoVariant);
+      const primoLabel = variantCfg ? variantCfg.label : 'Esercizio iniziale';
+      const primoSetsTxt = (s.primoSets||[]).map(x => `${x.peso ?? '–'}×${x.reps ?? '–'}`).join('  ');
+      primoBlock = `<div class="history-ex"><span class="ex-name">${primoLabel}</span><br><span class="ex-sets">${primoSetsTxt}</span></div>`;
+    }
+    const gruppiHTML = Object.keys(s.gruppi || {}).map(gKey => {
+      const gs = s.gruppi[gKey];
+      if(!gs || !gs.esercizio) return '';
+      const currentSlot = dayCfg.gruppi.find(g => g.key === gKey);
+      const groupLabel = currentSlot ? currentSlot.label : '(gruppo non più in uso)';
+      const setsTxt = (gs.sets||[]).map(x => `${x.peso ?? '–'}×${x.reps ?? '–'}`).join('  ');
+      return `<div class="history-ex"><span class="ex-name">${gs.esercizio}</span> <span style="color:var(--text-faint)">(${groupLabel})</span><br><span class="ex-sets">${setsTxt}</span></div>`;
+    }).join('');
+    return `
+    <div class="history-session">
+      <button class="del-session" data-del="${realIdx}">elimina</button>
+      <div class="date">${formatDate(s.date)}</div>
+      ${primoBlock}
+      ${gruppiHTML}
+    </div>`;
+  }).join('');
+  container.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = Number(btn.dataset.del);
+      const h = await loadHistory(currentDay);
+      h.splice(i, 1);
+      await saveHistory(currentDay, h);
+      renderHistoryView();
+    });
+  });
+}
+
+/* ---------- rendering: libreria esercizi ---------- */
+async function renderLibraryView(){
+  const container = document.getElementById('libraryView');
+  const lib = loadLibrary();
+  container.innerHTML = `
+    <div class="lib-intro">Aggiungi qui i macchinari e gli esercizi che usi per ogni gruppo muscolare: nella scheda del giorno potrai poi selezionarli da un menù a tendina.</div>
+    ${MUSCLE_GROUPS.map(m => {
+      const list = lib[m.key] || [];
+      return `
+      <div class="card" id="libcard-${m.key}">
+        <div class="card-head"><h3>${m.label}</h3></div>
+        <div class="lib-add-row">
+          <input type="text" placeholder="nome esercizio..." data-lib-input="${m.key}">
+          <button class="lib-add-btn" data-lib-add="${m.key}">Aggiungi</button>
+        </div>
+        <div class="lib-chips" id="libchips-${m.key}">
+          ${list.length
+            ? list.map(n => `<span class="lib-chip">${n}<button data-lib-remove="${m.key}" data-lib-name="${n}">×</button></span>`).join('')
+            : '<span class="lib-empty">nessun esercizio ancora</span>'}
+        </div>
+      </div>`;
+    }).join('')}
+    ${MUSCLE_GROUPS.length ? '' : '<div class="empty-state">Nessun gruppo muscolare configurato. Vai su "Schema" per aggiungerne.</div>'}
+  `;
+  MUSCLE_GROUPS.forEach(m => {
+    const input = container.querySelector(`[data-lib-input="${m.key}"]`);
+    const addBtn = container.querySelector(`[data-lib-add="${m.key}"]`);
+    const doAdd = () => {
+      const ok = addExerciseToLibrary(m.key, input.value);
+      if(ok){ input.value = ''; refreshLibraryChips(m.key); }
+    };
+    addBtn.addEventListener('click', doAdd);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); doAdd(); } });
+  });
+  container.querySelectorAll('[data-lib-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      removeExerciseFromLibrary(btn.dataset.libRemove, btn.dataset.libName);
+      refreshLibraryChips(btn.dataset.libRemove);
+    });
+  });
+}
+function refreshLibraryChips(muscleKey){
+  const lib = loadLibrary();
+  const list = lib[muscleKey] || [];
+  const el = document.getElementById('libchips-' + muscleKey);
+  el.innerHTML = list.length
+    ? list.map(n => `<span class="lib-chip">${n}<button data-lib-remove="${muscleKey}" data-lib-name="${n}">×</button></span>`).join('')
+    : '<span class="lib-empty">nessun esercizio ancora</span>';
+  el.querySelectorAll('[data-lib-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      removeExerciseFromLibrary(btn.dataset.libRemove, btn.dataset.libName);
+      refreshLibraryChips(btn.dataset.libRemove);
+    });
+  });
+}
+
+/* ---------- rendering: statistiche ---------- */
+function buildLineChartSVG(points){
+  const w = 320, h = 170, padL = 32, padR = 10, padT = 14, padB = 26;
+  const values = points.map(p => p.value);
+  let min = Math.min(...values), max = Math.max(...values);
+  if(min === max){ min -= 1; max += 1; }
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const xScale = i => padL + xStep * i;
+  const yScale = v => padT + innerH * (1 - (v - min) / (max - min));
+  const linePts = points.map((p,i) => `${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`).join(' ');
+  const dots = points.map((p,i) => `<circle cx="${xScale(i).toFixed(1)}" cy="${yScale(p.value).toFixed(1)}" r="3.5" fill="var(--brass)" />`).join('');
+  const labelEvery = Math.max(1, Math.ceil(points.length / 5));
+  const labels = points.map((p,i) => (i % labelEvery === 0 || i === points.length-1)
+    ? `<text x="${xScale(i).toFixed(1)}" y="${h-8}" font-size="9" fill="#7d7768" text-anchor="middle">${p.label}</text>` : '').join('');
+  const gridLines = [0, 0.5, 1].map(t => {
+    const val = min + (max - min) * t;
+    const y = yScale(val);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#3a362b" stroke-width="1"/>
+            <text x="${padL-5}" y="${(y+3).toFixed(1)}" font-size="9" fill="#7d7768" text-anchor="end">${fmtNum(val)}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%; height:auto; display:block; margin:8px 0 2px;">
+    ${gridLines}
+    ${points.length > 1 ? `<polyline points="${linePts}" fill="none" stroke="#c9a227" stroke-width="2"/>` : ''}
+    ${dots}
+    ${labels}
+  </svg>`;
+}
+async function renderStatsView(){
+  const container = document.getElementById('statsView');
+  if(!MUSCLE_GROUPS.length){
+    container.innerHTML = '<div class="empty-state">Nessun gruppo muscolare configurato. Vai su "Schema" per aggiungerne.</div>';
+    return;
+  }
+  if(!statsMuscle || !MUSCLE_GROUPS.some(m => m.key === statsMuscle)) statsMuscle = MUSCLE_GROUPS[0].key;
+  const entries = await getMuscleHistory(statsMuscle);
+  const lib = loadLibrary();
+  const exFromHistory = [...new Set(entries.map(e => e.esercizio))];
+  const exFromLib = lib[statsMuscle] || [];
+  const exOptions = Array.from(new Set([...exFromHistory, ...exFromLib]));
+  if(!statsExercise || !exOptions.includes(statsExercise)){
+    statsExercise = exFromHistory[0] || exOptions[0] || null;
+  }
+
+  const muscleChips = MUSCLE_GROUPS.map(m =>
+    `<button class="chip-select ${m.key === statsMuscle ? 'active' : ''}" data-stats-muscle="${m.key}">${m.label}</button>`
+  ).join('');
+
+  const exerciseHTML = exOptions.length
+    ? `<select id="statsExerciseSelect">${exOptions.map(n =>
+        `<option value="${n}" ${n === statsExercise ? 'selected' : ''}>${n}</option>`).join('')}</select>`
+    : `<div class="no-lib-hint">Ancora nessun esercizio registrato per questo gruppo.</div>`;
+
+  const rangeChips = STATS_RANGES.map(r => {
+    const val = r.days === null ? 'all' : r.days;
+    const isActive = r.days === statsRangeDays;
+    return `<button class="chip-select ${isActive ? 'active' : ''}" data-stats-range="${val}">${r.label}</button>`;
+  }).join('');
+  const metricChips = Object.keys(STATS_METRICS).map(mk =>
+    `<button class="chip-select ${mk === statsMetric ? 'active' : ''}" data-stats-metric="${mk}">${STATS_METRICS[mk].label}</button>`
+  ).join('');
+
+  let bodyHTML = '';
+  if(statsExercise){
+    const metric = STATS_METRICS[statsMetric];
+    const cutoff = statsRangeDays ? Date.now() - statsRangeDays * 86400000 : null;
+    const filtered = entries.filter(e => e.esercizio === statsExercise && (!cutoff || new Date(e.date+'T00:00:00').getTime() >= cutoff));
+    const points = filtered
+      .map(e => ({ label: formatDateShort(e.date), value: metric.calc(e.sets), date: e.date }))
+      .filter(p => metric.valid(p.value));
+
+    if(!points.length){
+      bodyHTML = `<div class="empty-state">Nessun dato per "${statsExercise}" in questo periodo.</div>`;
+    } else {
+      const first = points[0], last = points[points.length-1];
+      const best = points.reduce((a,b) => b.value > a.value ? b : a, points[0]);
+      const delta = last.value - first.value;
+      bodyHTML = `
+        <div class="stats-subtitle">${metric.subtitle}</div>
+        <div class="stats-summary">
+          <div class="stat-box"><div class="stat-label">Primo</div><div class="stat-value">${fmtNum(first.value)} kg</div></div>
+          <div class="stat-box"><div class="stat-label">Ultimo</div><div class="stat-value">${fmtNum(last.value)} kg</div></div>
+          <div class="stat-box"><div class="stat-label">Variazione</div><div class="stat-value ${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${fmtNum(delta)} kg</div></div>
+          <div class="stat-box"><div class="stat-label">Record</div><div class="stat-value">${fmtNum(best.value)} kg</div></div>
+        </div>
+        ${buildLineChartSVG(points)}
+        <div class="stats-table">
+          ${points.slice().reverse().map(p => `<div class="stats-row"><span>${p.label}</span><span>${fmtNum(p.value)} kg</span></div>`).join('')}
+        </div>
+      `;
+    }
+  }
+
+  container.innerHTML = `
+    <div class="stats-selectors">
+      <div class="chip-row">${muscleChips}</div>
+      ${exerciseHTML}
+      <div class="chip-row">${metricChips}</div>
+      <div class="chip-row">${rangeChips}</div>
+    </div>
+    ${bodyHTML}
+  `;
+
+  container.querySelectorAll('[data-stats-muscle]').forEach(b => {
+    b.addEventListener('click', () => { statsMuscle = b.dataset.statsMuscle; statsExercise = null; renderStatsView(); });
+  });
+  const exSel = document.getElementById('statsExerciseSelect');
+  if(exSel) exSel.addEventListener('change', e => { statsExercise = e.target.value; renderStatsView(); });
+  container.querySelectorAll('[data-stats-metric]').forEach(b => {
+    b.addEventListener('click', () => { statsMetric = b.dataset.statsMetric; renderStatsView(); });
+  });
+  container.querySelectorAll('[data-stats-range]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.statsRange;
+      statsRangeDays = v === 'all' ? null : Number(v);
+      renderStatsView();
+    });
+  });
+}
+
+/* ---------- rendering: schema ---------- */
+function buildGroupSlotEditorHTML(d, g, gi){
+  const isFirst = gi === 0, isLast = gi === d.gruppi.length - 1;
+  return `
+  <div class="group-slot-row">
+    <select class="slot-muscle-select" data-slot-muscle="${d.id}:${g.key}">
+      ${SCHEMA.muscleGroups.map(m => `<option value="${m.key}" ${m.key===g.muscle?'selected':''}>${m.label}</option>`).join('')}
+    </select>
+    <label class="slot-sets-label">serie
+      <input type="number" min="1" class="slot-sets-input" data-slot-sets="${d.id}:${g.key}" value="${g.sets || DEFAULT_GROUP_SETS}">
+    </label>
+    <label class="slot-superset-label"><input type="checkbox" data-slot-superset="${d.id}:${g.key}" ${g.superset?'checked':''}> superset</label>
+    <button class="row-icon-btn" data-slot-up="${d.id}:${g.key}" ${isFirst?'disabled':''}>↑</button>
+    <button class="row-icon-btn" data-slot-down="${d.id}:${g.key}" ${isLast?'disabled':''}>↓</button>
+    <button class="row-icon-btn" data-slot-remove="${d.id}:${g.key}">×</button>
+  </div>`;
+}
+function buildDayEditorHTML(d, idx){
+  const isFirst = idx === 0, isLast = idx === SCHEMA.days.length - 1;
+  return `
+  <div class="card schema-day-card">
+    <div class="card-head">
+      <input type="text" class="day-label-input" data-day-label="${d.id}" value="${d.label}">
+      <div class="day-order-btns">
+        <button data-day-up="${d.id}" ${isFirst?'disabled':''}>↑</button>
+        <button data-day-down="${d.id}" ${isLast?'disabled':''}>↓</button>
+      </div>
+    </div>
+    <button class="day-remove-btn" data-day-remove="${d.id}">elimina giornata</button>
+
+    <label class="schema-checkbox-row">
+      <input type="checkbox" data-primo-toggle="${d.id}" ${d.usaPrimo ? 'checked' : ''}>
+      Esercizio alternato a inizio giornata
+    </label>
+
+    ${d.usaPrimo ? `
+      <div class="primo-variant-row">
+        <div class="primo-variant-col">
+          <div class="mini-label">Variante A</div>
+          <input type="text" placeholder="nome esercizio" data-primo-field="${d.id}:A:label" value="${d.primo.variantA.label}">
+          <div class="mini-inline">
+            <input type="number" min="1" data-primo-field="${d.id}:A:sets" value="${d.primo.variantA.sets}"> serie ×
+            <input type="number" min="1" data-primo-field="${d.id}:A:targetReps" value="${d.primo.variantA.targetReps}"> reps
+          </div>
+        </div>
+        <div class="primo-variant-col">
+          <div class="mini-label">Variante B</div>
+          <input type="text" placeholder="nome esercizio" data-primo-field="${d.id}:B:label" value="${d.primo.variantB.label}">
+          <div class="mini-inline">
+            <input type="number" min="1" data-primo-field="${d.id}:B:sets" value="${d.primo.variantB.sets}"> serie ×
+            <input type="number" min="1" data-primo-field="${d.id}:B:targetReps" value="${d.primo.variantB.targetReps}"> reps
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="mini-label" style="margin-top:10px;">Gruppi muscolari allenati</div>
+    ${d.gruppi.map((g, gi) => buildGroupSlotEditorHTML(d, g, gi)).join('') || '<div class="lib-empty" style="margin-bottom:8px;">nessuno</div>'}
+    <button class="add-set" data-add-group-slot="${d.id}">+ aggiungi gruppo muscolare</button>
+  </div>`;
+}
+function buildSchemaHTML(){
+  return `
+    <div class="lib-intro">Configura la struttura del tuo programma: numero di giornate, quali gruppi muscolari alleni in ciascuna, e l'eventuale esercizio alternato a inizio giornata. I dati già salvati restano al sicuro anche se cambi scheda.</div>
+
+    <div class="card">
+      <div class="card-head"><h3>Gruppi muscolari</h3></div>
+      ${SCHEMA.muscleGroups.map(m => `
+        <div class="muscle-row">
+          <input type="text" class="muscle-name-input" data-muscle-rename="${m.key}" value="${m.label}">
+          <button class="row-icon-btn" data-muscle-remove="${m.key}">×</button>
+        </div>`).join('') || '<div class="lib-empty" style="margin-bottom:8px;">nessuno</div>'}
+      <div class="lib-add-row">
+        <input type="text" placeholder="nuovo gruppo muscolare..." id="newMuscleInput">
+        <button class="lib-add-btn" id="addMuscleBtn">Aggiungi</button>
+      </div>
+    </div>
+
+    ${SCHEMA.days.map((d, idx) => buildDayEditorHTML(d, idx)).join('')}
+
+    <button class="add-set" id="addDayBtn" style="margin-top:4px;">+ aggiungi giornata</button>
+  `;
+}
+async function renderSchemaView(){
+  const container = document.getElementById('schemaView');
+  container.innerHTML = buildSchemaHTML();
+  attachSchemaListeners();
+}
+function attachSchemaListeners(){
+  const container = document.getElementById('schemaView');
+
+  container.querySelectorAll('[data-muscle-rename]').forEach(inp => {
+    inp.addEventListener('blur', e => renameMuscle(e.target.dataset.muscleRename, e.target.value));
+    inp.addEventListener('keydown', e => { if(e.key==='Enter') e.target.blur(); });
+  });
+  container.querySelectorAll('[data-muscle-remove]').forEach(btn => {
+    btn.addEventListener('click', () => removeMuscle(btn.dataset.muscleRemove));
+  });
+  const addMuscleBtn = document.getElementById('addMuscleBtn');
+  const newMuscleInput = document.getElementById('newMuscleInput');
+  if(addMuscleBtn) addMuscleBtn.addEventListener('click', () => addMuscle(newMuscleInput.value));
+  if(newMuscleInput) newMuscleInput.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); addMuscle(e.target.value); } });
+
+  container.querySelectorAll('[data-day-label]').forEach(inp => {
+    inp.addEventListener('blur', e => renameDay(e.target.dataset.dayLabel, e.target.value));
+    inp.addEventListener('keydown', e => { if(e.key==='Enter') e.target.blur(); });
+  });
+  container.querySelectorAll('[data-day-up]').forEach(btn => btn.addEventListener('click', () => moveDay(btn.dataset.dayUp, -1)));
+  container.querySelectorAll('[data-day-down]').forEach(btn => btn.addEventListener('click', () => moveDay(btn.dataset.dayDown, 1)));
+  container.querySelectorAll('[data-day-remove]').forEach(btn => btn.addEventListener('click', () => removeDay(btn.dataset.dayRemove)));
+
+  container.querySelectorAll('[data-primo-toggle]').forEach(cb => {
+    cb.addEventListener('change', e => togglePrimo(e.target.dataset.primoToggle, e.target.checked));
+  });
+  container.querySelectorAll('[data-primo-field]').forEach(inp => {
+    const evt = inp.type === 'number' ? 'change' : 'blur';
+    inp.addEventListener(evt, e => {
+      const [dayId, variant, field] = e.target.dataset.primoField.split(':');
+      updatePrimoField(dayId, variant, field, e.target.value);
+    });
+    if(inp.type !== 'number'){
+      inp.addEventListener('keydown', e => { if(e.key==='Enter') e.target.blur(); });
+    }
+  });
+
+  container.querySelectorAll('[data-add-group-slot]').forEach(btn => btn.addEventListener('click', () => addGroupSlot(btn.dataset.addGroupSlot)));
+  container.querySelectorAll('[data-slot-muscle]').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const [dayId, slotKey] = e.target.dataset.slotMuscle.split(':');
+      updateSlotMuscle(dayId, slotKey, e.target.value);
+    });
+  });
+  container.querySelectorAll('[data-slot-superset]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const [dayId, slotKey] = e.target.dataset.slotSuperset.split(':');
+      updateSlotSuperset(dayId, slotKey, e.target.checked);
+    });
+  });
+  container.querySelectorAll('[data-slot-sets]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const [dayId, slotKey] = e.target.dataset.slotSets.split(':');
+      updateSlotSets(dayId, slotKey, e.target.value);
+    });
+  });
+  container.querySelectorAll('[data-slot-up]').forEach(btn => btn.addEventListener('click', () => {
+    const [dayId, slotKey] = btn.dataset.slotUp.split(':'); moveGroupSlot(dayId, slotKey, -1);
+  }));
+  container.querySelectorAll('[data-slot-down]').forEach(btn => btn.addEventListener('click', () => {
+    const [dayId, slotKey] = btn.dataset.slotDown.split(':'); moveGroupSlot(dayId, slotKey, 1);
+  }));
+  container.querySelectorAll('[data-slot-remove]').forEach(btn => btn.addEventListener('click', () => {
+    const [dayId, slotKey] = btn.dataset.slotRemove.split(':'); removeGroupSlot(dayId, slotKey);
+  }));
+
+  const addDayBtn = document.getElementById('addDayBtn');
+  if(addDayBtn) addDayBtn.addEventListener('click', addDay);
+}
+
+/* ---------- orchestrazione viste ---------- */
+async function loadDayAndRender(){
+  renderTabs();
+  const history = await loadHistory(currentDay);
+  const draft = await loadDraft(currentDay);
+  if(draft && draft.state){
+    formState = draft.state;
+    lastSavedAt = draft.updatedAt || null;
+    resumedDraft = true;
+  } else {
+    formState = newFormState(currentDay, history);
+    lastSavedAt = null;
+    resumedDraft = false;
+  }
+  await renderCurrentView();
+}
+async function renderCurrentView(){
+  renderResumeBanner();
+  renderStatusLine();
+  if(currentView === 'session'){ await renderSessionView(); }
+  else if(currentView === 'history'){ await renderHistoryView(); }
+  else if(currentView === 'library'){ await renderLibraryView(); }
+  else if(currentView === 'stats'){ await renderStatsView(); }
+  else { await renderSchemaView(); }
+  document.getElementById('sessionView').style.display = currentView === 'session' ? '' : 'none';
+  document.getElementById('historyView').style.display = currentView === 'history' ? '' : 'none';
+  document.getElementById('libraryView').style.display = currentView === 'library' ? '' : 'none';
+  document.getElementById('statsView').style.display = currentView === 'stats' ? '' : 'none';
+  document.getElementById('schemaView').style.display = currentView === 'schema' ? '' : 'none';
+  document.getElementById('saveBar').style.display = currentView === 'session' ? '' : 'none';
+  document.getElementById('btnSessione').classList.toggle('active', currentView === 'session');
+  document.getElementById('btnStorico').classList.toggle('active', currentView === 'history');
+  document.getElementById('btnLibreria').classList.toggle('active', currentView === 'library');
+  document.getElementById('btnStats').classList.toggle('active', currentView === 'stats');
+  document.getElementById('btnSchema').classList.toggle('active', currentView === 'schema');
+}
+
+document.getElementById('btnSessione').onclick = () => { currentView = 'session'; renderCurrentView(); };
+document.getElementById('btnStorico').onclick = () => { currentView = 'history'; renderCurrentView(); };
+document.getElementById('btnLibreria').onclick = () => { currentView = 'library'; renderCurrentView(); };
+document.getElementById('btnStats').onclick = () => { currentView = 'stats'; renderCurrentView(); };
+document.getElementById('btnSchema').onclick = () => { currentView = 'schema'; renderCurrentView(); };
+document.getElementById('btnExport').onclick = exportBackup;
+document.getElementById('btnImport').onclick = importBackup;
+document.getElementById('importFileInput').addEventListener('change', handleImportFile);
+
+document.getElementById('updateBtn').addEventListener('click', async () => {
+  clearTimeout(autosaveTimer);
+  const btn = document.getElementById('updateBtn');
+  btn.disabled = true;
+  const ok = await saveDraftNow();
+  btn.disabled = false;
+  showToast(ok ? 'Progressi aggiornati' : ('Errore: ' + (lastErrorMsg || 'salvataggio fallito')));
+});
+
+document.getElementById('finishBtn').addEventListener('click', async () => {
+  clearTimeout(autosaveTimer);
+  const btn = document.getElementById('finishBtn');
+  btn.disabled = true;
+  const history = await loadHistory(currentDay);
+  history.push(formState);
+  const ok = await saveHistory(currentDay, history);
+  if(ok){
+    await deleteDraft(currentDay);
+    resumedDraft = false;
+    lastSavedAt = null;
+    formState = newFormState(currentDay, history);
+    showToast('Allenamento salvato nello storico');
+    await renderCurrentView();
+  } else {
+    showToast('Errore: ' + (lastErrorMsg || 'salvataggio fallito'));
+  }
+  btn.disabled = false;
+});
+
+checkStorageAvailable();
+loadDayAndRender();
+</script>
+</body>
+</html>
